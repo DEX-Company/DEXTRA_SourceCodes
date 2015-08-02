@@ -3,6 +3,7 @@ import csv as csv
 import numpy as np
 import time
 from sklearn.cross_validation import StratifiedShuffleSplit as sss
+import math
 
 def func_example():
 	pass
@@ -19,7 +20,11 @@ class read_write:
 		return (header, csv_file_array)
 
 	def csv_s_to_array(self, file_path_names, mode = 'rb'):
-		array = np.array([["","","","",""]])
+		file_path_name = file_path_names[0]
+		file_object = open(file_path_name, mode)
+		csv_file_oject = csv.reader(file_object)
+		array = np.array([csv_file_oject.next()])
+		file_object.close()
 		for path in file_path_names:
 			(header, arr) = self.csv_to_array(path, mode)
 			array = np.vstack((array, arr))
@@ -49,10 +54,11 @@ class read_write:
 		tsv_file_array = np.array(tsv_file_list)
 		return (header, tsv_file_array)
 
-	def array_to_csv(self, array, file_path, header = None):
+	def array_to_csv(self, array, file_path, header = 0):
 		open_file_object = open(file_path, 'wb')
 		write_file_object = csv.writer(open_file_object)
-		write_file_object.writerow(list(header.flatten()))
+		if (header != 0):
+			write_file_object.writerow(list(header.flatten()))
 	#	print
 	#	print header
 	#	print list(header)
@@ -176,10 +182,104 @@ class stratification:
 		np.random.shuffle(cross_index)
 		return (train_index, cross_index, test_index)
 
+	def two_cln_fake(self, header, array, clns, train = 0.6, cross = 0.2):
+		pass
+
+	def data_randomnize(self, data_extracted, split_ratio): # This function will randomnize the given dataset, and then split them according the split ratio
+		np.random.shuffle(data_extracted)
+		num_rows = np.size(data_extracted[:,0])
+		num_row_train = int(round(num_rows*split_ratio[0]))
+		num_row_cross = int(round(num_rows*split_ratio[1]))
+	#	num_row_test = num_rows - num_row_train - num_row_cross
+		return (data_extracted[0:num_row_train,:], data_extracted[num_row_train:(num_row_train + num_row_cross),:], data_extracted[(num_row_train + num_row_cross):num_rows,:])
+		print num_rows
+
+	def two_clns(self, data_header, data_whole, clns, split_ratio = [0.6, 0.2, 0.2]):
+		'''
+		This method is to handle data stratification in two columns;
+		data_header is the 2-D array of header names, data_whole is the 2-D array of whole data
+		clns is the list of the names of 2 columns to be splitted based on
+		split_ratio is the list of ratios of train, cross validation and test datasets
+		'''
+	## Step 1. Find the index number of the columns according to their names	
+		stratified_cln = [0,1]
+		i = 0
+		for cln_name in clns:
+			stratified_cln[i] = np.where(data_header == cln_name)[1][0]
+#!			print np.where(data_header == cln_name)
+			i = i + 1
+#!		print stratified_cln
+	## Step 2. Create two lists, one is the list of lists of unique values of each of 2 clns, one is the list of # of unique values in each of 2 clns
+		num_rows = np.size(data_whole[:,0])
+		stratified_cln_unique_value = []
+		temp_list = []
+		for i in stratified_cln:
+			temp_array = np.unique(data_whole[:,i])
+			temp_list.append(list(temp_array))
+			stratified_cln_unique_value.append(len(temp_array))
+	#!	print temp_list[0][0]
+	## Step 3. Segment the rows in to (m X n) segments, here m, n are # of unique values of in each of 2 clns
+		data_train_array = data_header
+		data_cross_array = data_header
+		data_test_array = data_header
+		for i in xrange(stratified_cln_unique_value[0]):
+			for j in xrange(stratified_cln_unique_value[1]):
+				data_extracted = data_whole[(data_whole[:,stratified_cln[0]] == temp_list[0][i]) & (data_whole[:,stratified_cln[1]] == temp_list[1][j]),:]
+				(temp_train, temp_cross, temp_test) = self.data_randomnize(data_extracted, split_ratio)
+	#!			print temp_train
+				data_train_array = np.vstack((data_train_array, temp_train))
+				data_cross_array = np.vstack((data_cross_array, temp_cross))
+				data_test_array = np.vstack((data_test_array, temp_test))
+	#!			print data_extracted
+		return data_train_array, data_cross_array, data_test_array
+
+class create_files_for_participant:
+	def sample_submission(self, header, data, cln_name):
+		num_rows = np.size(data[:,0]) # number of rows
+		cln_num = np.where(header == cln_name)[1][0]
+		id_column = data[:,cln_num].reshape((num_rows,1)) # extract the id column of the dataset
+		random_assignment = np.random.uniform(0.0, 1.0, size = (num_rows,1)).astype(str) # -> This is to generate uniform float value between 0 and 1
+	#!	print random_assignment
+	#!	print file_paths
+		return np.hstack((id_column, random_assignment))
+
+class evaluation_metric:
+	def LogarithmicLoss(self, submission, public, private):
+		'''
+		This method take 3 inputs, the submission array, the backend array for public score, and backend array for private score
+		'''
+		dict_submission = dict(zip(submission[:, 0], submission[:, 1]))
+		dict_public = dict(zip(public[:, 0], public[:, 1]))
+		dict_private = dict(zip(private[:, 0], private[:, 1]))
+
+		sum_public = 0.0
+		for key in dict_public.keys():
+			truth = int(dict_public[key])
+			if (truth == 1):
+				prediction = max(float(dict_submission[key]), pow(10, -15))
+			else:
+				prediction = max(1.0 - float(dict_submission[key]), pow(10, -15))
+			sum_public = sum_public + math.log10(prediction)
+
+		sum_private = 0.0
+		for key in dict_private.keys():
+			truth = int(dict_private[key])
+			if (truth == 1):
+				prediction = max(float(dict_submission[key]), pow(10, -15))
+			else:
+				prediction = max(1.0 - float(dict_submission[key]), pow(10, -15))
+			sum_private = sum_private + math.log10(prediction)
+
+		return - sum_public/len(dict_public.keys()), - sum_private/len(dict_private.keys())
+
 class recommendation: # This class contains methods used for recommendation system
 	def noise_add(self, percentage): # This method is to add additional noises to the cross validation and test datasets, and those noise user-movie pairs won't be evaluated
 		pass
 
 class rakuten(read_write, slicing, lookup, sort_arr):
+	def function():
+		pass
+
+class mindef(read_write, sort_arr, stratification, create_files_for_participant, evaluation_metric):
 	def function():
 		pass
