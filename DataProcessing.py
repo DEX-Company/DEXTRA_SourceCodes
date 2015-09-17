@@ -1,6 +1,7 @@
 #! This is a module that contains methods for data processing, such as write to csv, read csv into array and etc
 import csv as csv
 import numpy as np
+import pandas as pd
 import time
 from sklearn.cross_validation import StratifiedShuffleSplit as sss
 import math
@@ -8,7 +9,35 @@ import math
 def func_example():
 	pass
 
-class read_write:
+class data_clean(object):
+	'''
+	This class include methods for data cleaning. The main packages used here are pandas and numpy
+	'''
+	def read_remove_clns(self, path, cln_list):
+		df = pd.read_csv(path, header = 0) # Read the csv file into data frame
+		return df.drop(cln_list, axis = 1) # Remove columns in the list cln_list
+
+	def read_remove_rows(self, path_I, path_II, cln):
+		'''This function reads 2 csv files into data frames df_1 and df_2, and for the common column 'cln', remove rows
+		in df_1 with entry appearing in df_2
+
+		:return -> new data frame of df_1 with rows that are in df_2 removed
+		'''
+		with open(path_I) as f1, open(path_II) as f2:
+			df1 = pd.read_csv(path_I, header = 0)
+			df2 = pd.read_csv(path_II, header = 0)
+
+			arr_1 = df1[cln].values.astype(str)
+			arr_2 = df2[cln].values.astype(str)
+
+			arr_1 = np.char.lower(arr_1)
+			arr_2 = np.char.lower(arr_2)
+
+			idx_true_false = np.invert(np.in1d(arr_1, arr_2))
+			df_new = df1[idx_true_false]
+		return df_new
+
+class read_write(object):
 	def csv_to_array(self, file_path_name, mode = 'rb'):
 		file_object = open(file_path_name, mode)
 		csv_file_oject = csv.reader(file_object)
@@ -85,7 +114,7 @@ class read_write:
 			write_file_object.writerow(list(row))
 		open_file_object.close()
 
-class slicing:
+class slicing(object):
 	def chunks(self, array, granular, arr_len):
 		for i in xrange(0, arr_len, granular):
 			yield array[i:i+granular]
@@ -96,7 +125,7 @@ class slicing:
 			yield array[index : index + granular_array[i]]
 			index = index + granular_array[i]
 
-class sort_arr:
+class sort_arr(object):
 	def one_index_sort(self, array, cln):
 		return array[array[:, cln].astype(int).argsort(),:]
 
@@ -170,7 +199,7 @@ class lookup(read_write):
 						print
 
 
-class stratification:
+class stratification(object):
 	# The method below select train/test/validation datasets based on stratification on one column
 	# It returns a turple of 3 arrays containing the index for train/test/validation datasets respectively
 	def one_cln(self, array, train = 0.6, cross = 0.2): #array is the 1-D array -> the column to be stratified
@@ -233,7 +262,7 @@ class stratification:
 	#!			print data_extracted
 		return data_train_array, data_cross_array, data_test_array
 
-class create_files_for_participant:
+class create_files_for_participant(object):
 	def sample_submission(self, header, data, cln_name):
 		num_rows = np.size(data[:,0]) # number of rows
 		cln_num = np.where(header == cln_name)[1][0]
@@ -243,7 +272,7 @@ class create_files_for_participant:
 	#!	print file_paths
 		return np.hstack((id_column, random_assignment))
 
-class evaluation_metric:
+class evaluation_metric(object):
 	def LogarithmicLoss(self, submission, public, private):
 		'''
 		This method take 3 inputs, the submission array, the backend array for public score, and backend array for private score
@@ -272,14 +301,53 @@ class evaluation_metric:
 
 		return - sum_public/len(dict_public.keys()), - sum_private/len(dict_private.keys())
 
-class recommendation: # This class contains methods used for recommendation system
+	def LogLoss(self, truth, prediction):
+		'''
+		This method take 2 inputs: the array of true value and the array of predicted value; and the the method will evaluate the prediction against
+		truth using Log Loss metric; each array has two columns
+		'''
+		dict_truth = dict(zip(truth[:, 0], truth[:, 1]))
+		dict_predicted = dict(zip(prediction[:, 0], prediction[:, 1]))
+
+		score = 0.0
+		for key in dict_truth.keys():
+			truth = int(dict_truth[key])
+			if (truth == 1):
+				predicted = min(1, max(float(dict_predicted[key]), pow(10, -15)))
+			else:
+				predicted = min(1, max(1.0 - float(dict_predicted[key]), pow(10, -15)))
+			score = score + math.log10(predicted)
+		return - score/len(dict_truth.keys())
+
+	def LogLoss_II(self, truth, prediction):
+		'''
+		This method take 2 inputs: the array of true value and the array of predicted value; and the the method will evaluate the prediction against
+		truth using Log Loss metric; each array has only one column
+		'''
+		N = len(truth)
+
+		score = 0.0
+		for i in xrange(N):
+			truth_value = int(truth[i])
+			if (truth_value == 1):
+				predicted = min(1, max(float(prediction[i]), pow(10, -15)))
+			else:
+				predicted = min(1, max(1.0 - float(prediction[i]), pow(10, -15)))
+			score = score + math.log10(predicted)
+		return - score/N
+
+class recommendation(object): # This class contains methods used for recommendation system
 	def noise_add(self, percentage): # This method is to add additional noises to the cross validation and test datasets, and those noise user-movie pairs won't be evaluated
 		pass
 
-class rakuten(read_write, slicing, lookup, sort_arr):
+class rakuten(slicing, sort_arr, lookup, read_write): # Import Derived class first, and then the base class. Here loopup is derived class of read_write. Actually no need to inherit 'read_write'
 	def function():
 		pass
 
-class mindef(read_write, sort_arr, stratification, create_files_for_participant, evaluation_metric):
+class mindef(data_clean, read_write, sort_arr, stratification, create_files_for_participant, evaluation_metric):
+	def function():
+		pass
+
+class mindef_benchmark(data_clean, read_write):
 	def function():
 		pass
