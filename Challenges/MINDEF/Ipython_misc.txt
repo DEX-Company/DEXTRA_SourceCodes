@@ -1,8 +1,0 @@
-Math/LaTeX rendering will be disabled.
-If you have administrative access to the notebook server and a working internet connection, you can install a local copy of MathJax for offline use with the following command on the server at a Python or IPython prompt:
->>> from IPython.external import mathjax; mathjax.install_mathjax()
-This will try to install MathJax into the IPython source directory.
-If IPython is installed to a location that requires administrative privileges to write, you will need to make this call as an administrator, via 'sudo'.
-When you start the notebook server, you can instruct it to disable MathJax support altogether:
-$ ipython notebook --no-mathjax
-which will prevent this dialog from appearing.
