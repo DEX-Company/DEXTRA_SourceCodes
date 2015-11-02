@@ -1,0 +1,35 @@
+digraph Tree {
+0 [label="EMPLOYEE_GROUP_MILITARY REGULARS <= 0.5000\nentropy = 0.650923468373\nsamples = 15019", shape="box"] ;
+1 [label="entropy = 0.0000\nsamples = 2085\nvalue = [    0.  2085.]", shape="box"] ;
+0 -> 1 ;
+2 [label="GENDER_Male <= 0.5000\nentropy = 0.20815619058\nsamples = 12934", shape="box"] ;
+0 -> 2 ;
+3 [label="SERVICE_TYPE_Premium Plan 1 <= 0.5000\nentropy = 0.64742367234\nsamples = 1045", shape="box"] ;
+2 -> 3 ;
+4 [label="YEARS_IN_GRADE <= 2.5000\nentropy = 0.606281865295\nsamples = 1023", shape="box"] ;
+3 -> 4 ;
+5 [label="(...)", shape="box"] ;
+4 -> 5 ;
+208 [label="(...)", shape="box"] ;
+4 -> 208 ;
+339 [label="RANK_GROUPING_MIDDLE WOSE <= 0.5000\nentropy = 0.266764987803\nsamples = 22", shape="box"] ;
+3 -> 339 ;
+340 [label="(...)", shape="box"] ;
+339 -> 340 ;
+341 [label="(...)", shape="box"] ;
+339 -> 341 ;
+342 [label="AGE <= 39.5000\nentropy = 0.147639130355\nsamples = 11889", shape="box"] ;
+2 -> 342 ;
+343 [label="SERVICE_TYPE_Premium Plan 1 <= 0.5000\nentropy = 0.0298554623051\nsamples = 9190", shape="box"] ;
+342 -> 343 ;
+344 [label="(...)", shape="box"] ;
+343 -> 344 ;
+481 [label="(...)", shape="box"] ;
+343 -> 481 ;
+492 [label="SERVICE_TYPE_Premium Plan 2 <= 0.5000\nentropy = 0.411355396577\nsamples = 2699", shape="box"] ;
+342 -> 492 ;
+493 [label="(...)", shape="box"] ;
+492 -> 493 ;
+982 [label="(...)", shape="box"] ;
+492 -> 982 ;
+}
