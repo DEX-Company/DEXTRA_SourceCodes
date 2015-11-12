@@ -8,4 +8,4 @@ Evaluation Metric Expected Weighted Average Precision (EWAP)
 Evaluation Metric Logarithmic Loss (LogLoss)
 
 ### DataProcessing.py
-The python module created for data cleaning.
+The python module created for data cleaning. It contains many customized classes and methods used for cleaning the data for several challenges, including Rakuten Viki and MINDEF challenges.
