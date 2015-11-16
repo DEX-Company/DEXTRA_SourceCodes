@@ -21,18 +21,18 @@ The sample data that emulates the ground truth of submission hidden from partici
 
 ### Run in Python
 
-*1* Download this folder to your local directory.
+*1.* Download this folder to your local directory.
 
-*2* Put [DataProcessing.py](https://github.com/newtoncircus/DEXTRA_SourceCodes/blob/master/DataProcessing.py) in this folder.
+*2.* Put [DataProcessing.py](https://github.com/newtoncircus/DEXTRA_SourceCodes/blob/master/DataProcessing.py) in this folder.
 
-*3* In the Terminal, type python /path/to/this/folder/EWAP.py.
+*3.* In the Terminal, type python /path/to/this/folder/EWAP.py.
 
 ### Run in R
 
-*1* Download this folder to your local directory.
+*1.* Download this folder to your local directory.
 
-*2* Open [EWAP.R](https://github.com/newtoncircus/DEXTRA_SourceCodes/blob/master/EWAP/EWAP.R) in R Studio.
+*2.* Open [EWAP.R](https://github.com/newtoncircus/DEXTRA_SourceCodes/blob/master/EWAP/EWAP.R) in R Studio.
 
-*3* In the code, change the file_path to the desired path in your local directory.
+*3.* In the code, change the file_path to the desired path in your local directory.
 
-*4* Run the code in R studio.
+*4.* Run the code in R studio.
