@@ -1,7 +1,7 @@
 # DEXTRA_SourceCodes
 Including Evaluation Metrics used in challenges.dextra.sg and the python module created for data cleaning.
 
-### EWAP
+### [EWAP](https://github.com/newtoncircus/DEXTRA_SourceCodes/tree/master/EWAP)
 Evaluation Metric Expected Weighted Average Precision (EWAP)
 
 ### LogLoss
