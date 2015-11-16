@@ -88,66 +88,97 @@ class read_write(object):
 			write_file_object.writerow(list(row))
 		open_file_object.close()
 
-def install_r_pack(packnames):
-	"""Install missing r packages for rpy2 package
-	Input: tuple of missing packages
+class R_Python_Interface(object):
+	"""Collections of methods for Python to call R functions/packages. It is first created to clean Unilever survey data for post Unilever data challenges,
+	but some methods can be actually used for general purpose, such as install missing r packages.
 	"""
-	# import rpy2's package module
-	import rpy2.robjects.packages as rpackages
-	if all(rpackages.isinstalled(x) for x in packnames):
-		have_tutorial_packages = True
-	else:
-		have_tutorial_packages = False
-	if not have_tutorial_packages:
-		# import R's utility package
-		utils = rpackages.importr('utils')
-		# select a mirror for R packages
-		utils.chooseCRANmirror(ind=1) # select the first mirror in the list
-	if not have_tutorial_packages:
-		# R vector of strings
-		from rpy2.robjects.vectors import StrVector
-		# file
-		packnames_to_install = [x for x in packnames if not rpackages.isinstalled(x)]
-		if len(packnames_to_install) > 0:
-			utils.install_packages(StrVector(packnames_to_install))
+
+	def __init__(self, packnames):
+		"""Initialise the object through checking the required packages and install them if needed.
+
+		Input ->
+		packnames :    tuple of required r packages
+		"""
+		# import rpy2's package module
+		import rpy2.robjects.packages as rpackages
+		if all(rpackages.isinstalled(x) for x in packnames):
+			have_tutorial_packages = True
+		else:
+			have_tutorial_packages = False
+		if not have_tutorial_packages:
+			# import R's utility package
+			utils = rpackages.importr('utils')
+			# select a mirror for R packages
+			utils.chooseCRANmirror(ind=1) # select the first mirror in the list
+		if not have_tutorial_packages:
+			# R vector of strings
+			from rpy2.robjects.vectors import StrVector
+			# file
+			packnames_to_install = [x for x in packnames if not rpackages.isinstalled(x)]
+			if len(packnames_to_install) > 0:
+				utils.install_packages(StrVector(packnames_to_install))
 
 
-def call_r_func(path=None):
-	"""Use R functions to read SPSS files"""
-	from rpy2.robjects import r
-	from string import Template
-	from rpy2.robjects import pandas2ri
-	import unicodedata
-	file_location = path # or "./1 - 110778/110778.sav"
-	file_location_csv = file_location[:-4] + ".csv"
-	r_code = Template('''
-	library(foreign)
-	library(plyr)
+	def call_r_func(self):
+		"""Sample method to demonstrate how to write a method to call r function/packages."""
+		pass
+		
 
-	file_path <- "/Volumes/Data/Google Drive/DEX:DEXTRA/02 Global Lead Users/5. Unilever/6 Data"
-	setwd(file_path)
+class R_Python_Unilever(R_Python_Interface):
+	"""Employ R functions/packages in python script to clean the data of Unilever challenge. It inherits from the general class 
+	<R_Python_Interface>, and adds more sepcific methods for Unilever data cleaning.
+	"""
 
-	df <- read.spss ("$origin_file", to.data.frame=TRUE)
-	desc <- attr(df,"variable.labels")
-	write.csv(df, file="$output_file", na="")
-	''')
-	r_code = r_code.substitute(origin_file=file_location, output_file=file_location_csv) # Substitute input and output file with variables presented in python
-	r(r_code) # Run the above r code in r global environment
+	def __init__(self, packnames, path):
+		"""Initialise the object through checking available packages
 
-	df = pandas2ri.ri2py(r('df')) # convert from r data frame into pandas data frame
-	df = df.applymap(lambda x: unicodedata.normalize('NFKD', x).encode('ascii','ignore') if type(x) == unicode else x) # Translate unicode encoding into ascii encoding
+		Input ->
+		packnames :    tuple of required r packages
+		path :         string of full path to the spss file, e.g. "/Volumes/Data/Google Drive/DEX:DEXTRA/02 Global Lead Users/5. Unilever/6 Data/1 - 110778/110778.sav"
+		"""
+		super(R_Python_Unilever, self).__init__(packnames) # Call parent class to initialise the required packages
+		self._file_path = path
 
-	desc = pandas2ri.ri2py(r('desc')) # convert into python variable
-	for j, ele in enumerate(desc):
-		if type(desc[j]) == np.unicode_:
-			desc[j] = str(unicodedata.normalize('NFKD', desc[j]).encode('ascii','ignore')) # http://stackoverflow.com/questions/1207457/convert-a-unicode-string-to-a-string-in-python-containing-extra-symbols
-	desc = desc.astype(np.string_)
-	return df, desc
+	def read_spss_to_df(self):
+		"""Use R functions to read SPSS files
+
+		Input ->
+		NULL
+		====================================================================================================
+		Output ->
+		Return a tuple of a python DataFrame and an np array of descriptions of column names (i.e. features descriptions)
+		"""
+		from rpy2.robjects import r
+		from string import Template
+		from rpy2.robjects import pandas2ri
+		import unicodedata
+		file_location = self._file_path # or "./1 - 110778/110778.sav"
+		file_location_csv = file_location[:-4] + ".csv"
+		r_code = Template('''
+		library(foreign)
+		library(plyr)
+
+		df <- read.spss ("$origin_file", to.data.frame=TRUE)
+		desc <- attr(df,"variable.labels")
+		write.csv(df, file="$output_file", na="")
+		''')
+		r_code = r_code.substitute(origin_file=file_location, output_file=file_location_csv) # Substitute input and output file with variables presented in python
+		r(r_code) # Run the above r code in r global environment
+
+		df = pandas2ri.ri2py(r('df')) # convert from r data frame into pandas data frame
+		df = df.applymap(lambda x: unicodedata.normalize('NFKD', x).encode('ascii','ignore') if type(x) == unicode else x) # Translate unicode encoding into ascii encoding
+
+		desc = pandas2ri.ri2py(r('desc')) # convert into python variable
+		for j, ele in enumerate(desc):
+			if type(desc[j]) == np.unicode_:
+				desc[j] = str(unicodedata.normalize('NFKD', desc[j]).encode('ascii','ignore')) # http://stackoverflow.com/questions/1207457/convert-a-unicode-string-to-a-string-in-python-containing-extra-symbols
+		desc = desc.astype(np.string_)
+		return df, desc
 
 
 def read_r_to_python(path_I, path_II):
 	"""Read variables stored in R data format, and then convert it into Python data frame or array
-	This method is DEPRECIATED due to function <call_r_func>"""
+	This method is DEPRECIATED due to class <R_Python_Unilever>"""
 	from rpy2.robjects import r
 	from rpy2.robjects import pandas2ri
 	import unicodedata
@@ -164,67 +195,81 @@ def read_r_to_python(path_I, path_II):
 	desc = desc.astype(np.string_)
 	return df, desc
 
-class RReader(object):
-	"""Read variables stored in R data format"""
-	'''
-	def __init__(self, path_I, path_II):
-		"""Convert saved R variables into python variables, including dataframe"""
-		from rpy2.robjects import r
-		from rpy2.robjects import pandas2ri
-		self._path_I = path_I
-		self._path_II = path_II
-		tmp = r.readRDS(self._path_I) # read from r file
-		self._df = pandas2ri.ri2py(tmp) # convert into pandas data frame
+class UnileverDataCleaning(object):
+	"""Contains the pipeline of data cleaning for Unilever raw data.
+	Run the methods in class R_Python_Unilever first to get df and desc,
+	then feed the instance of this class with df and desc
+	"""
+	def __init__(self, path, df, desc):
+		"""Initialise the instance for given dataset.
 
-		tmp = r.readRDS(self._path_II)
-		self._desc = pandas2ri.ri2py(tmp) # convert into python variable
-		self._dict = None
-		self._dict_new = None
-	'''
-	def __init__(self, path_I, path_II, df, desc):
-		"""Convert saved R variables into python variables, including dataframe"""
-		self._path_I = path_I
-		self._path_II = path_II
+		Input ->
+		path :  string of full path to the spss file, e.g. "/Volumes/Data/Google Drive/DEX:DEXTRA/02 Global Lead Users/5. Unilever/6 Data/1 - 110778/110778.sav"
+		df :    pandas DataFrame, obtained from method <read_spss_to_df> in class <R_Python_Unilever>
+		desc :  1-D np array, obtained from method <read_spss_to_df> in class <R_Python_Unilever>
+		=========================================================================================================
+		Output ->
+		Initialise some variables for late usage
+		"""
+		self._path = path
 		self._df = df
 		self._desc = desc
 		self._dict = None
 		self._dict_new = None
+		self._process_ctl = [0]*6 # create an array of 0s to monitor the current process stage. Totally 5 methods involved in the pipeline process.
 
 	def get_df(self):
+		"""Return the input dataframe"""
 		return self._df
 
 	def get_desc(self):
+		"""Return the input 1-D np array"""
 		return self._desc
 
 	def get_dict(self):
 		"""Match the descriptions of column name and its description, and return it as a dictionary
-		Then dictionary is transformed into dataframe, with index being the key"""
-		cln_name = self._df.columns.values
-		cln_desc = self._desc
-		tmp_dict = dict(zip(cln_name, cln_desc))
-		self._dict = pd.Series(tmp_dict, name='Desc1')
+		Then dictionary is transformed into dataframe, with index being the key
+
+		Output ->
+		self._dict :  a dataframe transformed from dictionary, whose key is column name of data, and value is the corresponding descriptions
+		"""
+		if not self._process_ctl[0]: # The 1st step of the pipeline, so first element in _process_ctl is used to monitor it.
+			cln_name = self._df.columns.values
+			cln_desc = self._desc
+			tmp_dict = dict(zip(cln_name, cln_desc))
+			self._dict = pd.Series(tmp_dict, name='Desc1')
+
+			self._process_ctl[0] = 1
 		return self._dict
 
 	def remove_colon(self):
 		"""Remove some columns based on their descriptions. Basically, some descriptions contain colon, which means they are
-		re-directed from other questions, and those columns shall be removed"""
-		if self._dict is None:
-			self.get_dict()
-		self._dict_new = self._dict.copy()
-		index = self._dict_new.index.values
-		for idx in index:
-			if ":" in self._dict_new[idx]:
-				self._dict_new = self._dict_new.drop([idx])
-		'''
-		self._dict_new = {}
-		for key in self._dict.keys():
-			if ":" not in self._dict[key]:
-				self._dict_new[key] = self._dict[key]
-		'''
+		re-directed from other questions, and those columns shall be removed
+
+		Output ->
+		self._dict_new :   a new dataframe, deep copied from self._dict; columns with colon are removed as compared to original dateframe
+		"""
+		if not self._process_ctl[1]: # The 2nd step of the pipeline
+			self.get_dict() # Run the previous step to make sure the pre-requirement is fulfilled
+
+			self._dict_new = self._dict.copy()
+			index = self._dict_new.index.values
+			for idx in index:
+				if ":" in self._dict_new[idx]:
+					self._dict_new = self._dict_new.drop([idx])
+
+			self._process_ctl[1] = 1
+
 
 	@staticmethod
 	def refine_pattern(str_tmp):
-		"""Extract information from the descriptions, remove redundant words"""
+		"""Extract information from the descriptions, remove redundant words
+
+		Input ->
+		str_tmp :  a string to be cleaned
+		=====================================================================================================================
+		Return cleaned string if some partten is matached, otherwise return the original string
+		"""
 		import re
 		match = re.search(r'(^\w+\d+\w*\s)(.*)', str_tmp) # ^ -> start of string, \w -> words, \d -> digits, \s -> whitespace
 		if match:
@@ -234,7 +279,13 @@ class RReader(object):
 
 	@staticmethod
 	def refine_pattern2(str_tmp):
-		"""Extract information from the descriptions, remove redundant words"""
+		"""Extract information from the descriptions, remove redundant words
+
+		Input ->
+		str_tmp :  a string to be cleaned
+		=====================================================================================================================
+		Return cleaned string if some partten is matached, otherwise return the original string
+		"""
 		import re
 		match = re.search(r'(.*)(\(\w+\d+\w*_\d+\))(\s*.*)', str_tmp) # \w -> words, \d -> digits, \s -> whitespace
 		if match:
@@ -244,49 +295,62 @@ class RReader(object):
 
 	def refine_desc(self):
 		"""self.remove_colon -> self.refine_desc: work on the descriptions so as to remove redundant symbols and standardize the descriptions"""
-		if self._dict_new is None:
+		if not self._process_ctl[2]: # The 3rd step of the pipeline
 			self.remove_colon()
-		self._dict_new = pd.concat([self._dict_new, self._dict_new], axis=1, keys=['Desc1','Desc2'])
-		index = self._dict_new.index.values
-		for idx in index:
-			self._dict_new['Desc2'][idx] = self.refine_pattern(self._dict_new['Desc2'][idx])
-		return self._dict_new
-		'''
-		for key in self._dict_new.keys():
-			self._dict_new[key] = self.refine_pattern(self._dict_new[key])
-		'''
+
+			self._dict_new = pd.concat([self._dict_new, self._dict_new], axis=1, keys=['Desc1','Desc2'])
+			index = self._dict_new.index.values
+			for idx in index:
+				self._dict_new['Desc2'][idx] = self.refine_pattern(self._dict_new['Desc2'][idx])
+
+			self._process_ctl[2] = 1
+#		return self._dict_new
+			'''
+			for key in self._dict_new.keys():
+				self._dict_new[key] = self.refine_pattern(self._dict_new[key])
+			'''
 
 	def refine_desc2(self):
 		"""self.remove_colon -> self.refine_desc -> self.refine_desc2: work on the descriptions so as to remove redundant symbols and standardize the descriptions"""
-		if self._dict_new is not pd.core.frame.DataFrame:
+		if not self._process_ctl[3]: # The 4th step of the pipeline
 			self.refine_desc()
-		self._dict_new = pd.concat([self._dict_new, self._dict_new['Desc2']], axis=1)
-		self._dict_new.columns = ['Desc1','Desc2', 'Desc3']
-		index = self._dict_new.index.values
-		for idx in index:
-			self._dict_new['Desc3'][idx] = self.refine_pattern2(self._dict_new['Desc3'][idx])
-		return self._dict_new
+
+			self._dict_new = pd.concat([self._dict_new, self._dict_new['Desc2']], axis=1)
+			self._dict_new.columns = ['Desc1','Desc2', 'Desc3']
+			index = self._dict_new.index.values
+			for idx in index:
+				self._dict_new['Desc3'][idx] = self.refine_pattern2(self._dict_new['Desc3'][idx])
+
+			self._process_ctl[3] = 1
+#		return self._dict_new
 
 	def drop_duplicate(self):
 		"""self.remove_colon -> self.refine_desc -> self.refine_desc2 -> drop_duplicate: after removing noises from descriptions, some descriptions 
 		become duplicated. Even their content is different, but we cannot distinguish them through descriptions, so we discard them"""
-		if (self._dict_new is None) or (self._dict_new.shape[1] is not 3):
+		if not self._process_ctl[4]: # The 5th step of the pipeline
 			self.refine_desc2()
-		self._dict_new.drop_duplicates(subset='Desc3', keep=False, inplace=True)
+
+			self._dict_new.drop_duplicates(subset='Desc3', keep=False, inplace=True)
+
+			self._process_ctl[4] = 1
 
 	def remove_punctuation(self):
 		"""self.remove_colon -> self.refine_desc -> self.refine_desc2 -> drop_duplicate -> remove_punctuation: replace punctuation like ._? 
 		with whitespace, and change all words into lower cases"""
 		import string
-		self.drop_duplicate() # This could be removed
-		map_table = string.maketrans(string.punctuation, len(string.punctuation)*" ") # Create the table for replacing punctuation with whitespace
-		self._dict_new = pd.concat([self._dict_new, self._dict_new['Desc3']], axis=1)
-		self._dict_new.columns = ['Desc1','Desc2', 'Desc3', 'Desc4']
-#		self._dict_new.info()
-		index = self._dict_new.index.values
-		for idx in index:
-			self._dict_new['Desc4'][idx] = self._dict_new['Desc4'][idx].translate(map_table).lower()
-			self._dict_new['Desc4'][idx] = " ".join(self._dict_new['Desc4'][idx].split())
+		if not self._process_ctl[5]: # The 6th step of the pipeline
+			self.drop_duplicate()
+
+			map_table = string.maketrans(string.punctuation, len(string.punctuation)*" ") # Create the table for replacing punctuation with whitespace
+			self._dict_new = pd.concat([self._dict_new, self._dict_new['Desc3']], axis=1)
+			self._dict_new.columns = ['Desc1','Desc2', 'Desc3', 'Desc4']
+	#		self._dict_new.info()
+			index = self._dict_new.index.values
+			for idx in index:
+				self._dict_new['Desc4'][idx] = self._dict_new['Desc4'][idx].translate(map_table).lower()
+				self._dict_new['Desc4'][idx] = " ".join(self._dict_new['Desc4'][idx].split())
+
+			self._process_ctl[5] = 1
 
 
 	def save_dict(self, path_dict = None):
@@ -294,30 +358,16 @@ class RReader(object):
 		if self._dict is None:
 			self.get_dict()
 		if path_dict is None:
-			path_dict = self._path_I[:-4] + "_dict.csv"
+			path_dict = self._path[:-4] + "_dict.csv"
 		self._dict.to_csv(path_dict)#, encoding='utf-8')
-		'''
-		open_file_object = open(path_dict, "wb")
-		write_file_object = csv.writer(open_file_object)
-		for key in self._dict.keys():
-			write_file_object.writerow([key, self._dict[key]])
-		open_file_object.close()
-		'''
 
 	def save_dict_new(self, path_dict = None):
 		"""Save the new dictionary into csv file"""
 		if self._dict_new is None:
 			self.remove_colon()
 		if path_dict is None:
-			path_dict = self._path_I[:-4] + "_dict_new.csv"
+			path_dict = self._path[:-4] + "_dict_new.csv"
 		self._dict_new.to_csv(path_dict)
-		'''
-		open_file_object = open(path_dict, "wb")
-		write_file_object = csv.writer(open_file_object)
-		for key in self._dict_new.keys():
-			write_file_object.writerow([key, self._dict_new[key]])
-		open_file_object.close()
-		'''
 
 
 class create_files_for_participant(object):
